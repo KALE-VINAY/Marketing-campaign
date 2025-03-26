@@ -3,7 +3,7 @@ import GoogleProvider from "next-auth/providers/google";
 import { FirestoreAdapter } from "@auth/firebase-adapter";
 import { cert } from "firebase-admin/app";
 
-export const authOptions = {
+const authOptions = {
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -31,4 +31,5 @@ export const authOptions = {
 
 const handler = NextAuth(authOptions);
 
+export { authOptions }; // Export authOptions for external use
 export { handler as GET, handler as POST };
