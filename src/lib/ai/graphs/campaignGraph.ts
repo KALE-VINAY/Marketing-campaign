@@ -1,5 +1,5 @@
-import { StateGraph } from "langgraph";
-import { END, START } from "langgraph/constants";
+// import { StateGraph } from "langgraph";
+// import { END, START } from "langgraph/constants";
 import { RunnableLambda } from "@langchain/core/runnables";
 import { generateAdCopy } from "../chains/copyChain";
 import { generateImagePrompt } from "../chains/imageChain";
@@ -101,46 +101,46 @@ const generateTargetingNode = new RunnableLambda({
 });
 
 // Create the campaign generation graph
-export function createCampaignGraph() {
-  // Create a new state graph
-  const graph = new StateGraph<CampaignState>({
-    channels: {
-      businessInfo: {},
-      campaignInfo: {},
-      previousPerformance: {},
-      adCopy: {},
-      imagePrompt: {},
-      imageUrl: {},
-      targetingRecommendations: {},
-      error: {},
-    },
-  });
+// export function createCampaignGraph() {
+//   // Create a new state graph
+// //   const graph = new StateGraph<CampaignState>({
+// //     channels: {
+// //       businessInfo: {},
+// //       campaignInfo: {},
+// //       previousPerformance: {},
+// //       adCopy: {},
+// //       imagePrompt: {},
+// //       imageUrl: {},
+// //       targetingRecommendations: {},
+// //       error: {},
+// //     },
+// //   });
 
-  // Add nodes to the graph
-  graph.addNode("generateCopy", generateCopyNode);
-  graph.addNode("generateImage", generateImageNode);
-  graph.addNode("generateTargeting", generateTargetingNode);
+//   // Add nodes to the graph
+//   graph.addNode("generateCopy", generateCopyNode);
+//   graph.addNode("generateImage", generateImageNode);
+//   graph.addNode("generateTargeting", generateTargetingNode);
 
-  // Define the flow of the graph
-  graph.addEdge(START, "generateCopy");
-  graph.addEdge("generateCopy", "generateImage");
-  graph.addEdge("generateImage", "generateTargeting");
-  graph.addEdge("generateTargeting", END);
+//   // Define the flow of the graph
+//   graph.addEdge(START, "generateCopy");
+//   graph.addEdge("generateCopy", "generateImage");
+//   graph.addEdge("generateImage", "generateTargeting");
+//   graph.addEdge("generateTargeting", END);
 
-  // Conditional edges - if there's an error, go to END
-  graph.addConditionalEdges(
-    "generateCopy",
-    (state) => (state.error ? "END" : "generateImage")
-  );
+//   // Conditional edges - if there's an error, go to END
+//   graph.addConditionalEdges(
+//     "generateCopy",
+//     (state) => (state.error ? "END" : "generateImage")
+//   );
   
-  graph.addConditionalEdges(
-    "generateImage",
-    (state) => (state.error ? "END" : "generateTargeting")
-  );
+//   graph.addConditionalEdges(
+//     "generateImage",
+//     (state) => (state.error ? "END" : "generateTargeting")
+//   );
 
-  // Compile the graph
-  return graph.compile();
-}
+//   // Compile the graph
+//   return graph.compile();
+// }
 
 // Function to run the campaign generation graph
 export async function generateFullCampaign(input: {
@@ -157,8 +157,8 @@ export async function generateFullCampaign(input: {
   };
   previousPerformance?: string;
 }) {
-  const campaignGraph = createCampaignGraph();
+//   const campaignGraph = createCampaignGraph();
   
-  const result = await campaignGraph.invoke(input);
-  return result;
+//   const result = await campaignGraph.invoke(input);
+//   return result;
 }
