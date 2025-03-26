@@ -1,5 +1,3 @@
-// import { StateGraph } from "langgraph";
-// import { END, START } from "langgraph/constants";
 import { RunnableLambda } from "@langchain/core/runnables";
 import { generateAdCopy } from "../chains/copyChain";
 import { generateImagePrompt } from "../chains/imageChain";
@@ -100,47 +98,70 @@ const generateTargetingNode = new RunnableLambda({
   },
 });
 
+const START = "START";
+const END = "END";
+
+class StateGraph<T> {
+  private nodes: Record<string, RunnableLambda<T, T, {}>> = {};
+  private edges: Record<string, string[]> = {};
+  private conditionalEdges: Record<string, (state: T) => string> = {};
+
+  addNode(name: string, node: RunnableLambda<T, T, {}>) {
+    this.nodes[name] = node;
+  }
+
+  addEdge(from: string, to: string) {
+    if (!this.edges[from]) this.edges[from] = [];
+    this.edges[from].push(to);
+  }
+
+  addConditionalEdges(from: string, condition: (state: T) => string) {
+    this.conditionalEdges[from] = condition;
+  }
+
+  async invoke(initialState: T): Promise<T> {
+    let currentState = initialState;
+    let currentNode = START;
+
+    while (currentNode !== END) {
+      const nextNode = this.conditionalEdges[currentNode]
+        ? this.conditionalEdges[currentNode](currentState)
+        : this.edges[currentNode]?.[0];
+
+      if (!nextNode) break;
+
+      currentNode = nextNode;
+      if (this.nodes[currentNode]) {
+        currentState = await this.nodes[currentNode].invoke(currentState, {});
+      }
+    }
+
+    return currentState;
+  }
+}
+
 // Create the campaign generation graph
-// export function createCampaignGraph() {
-//   // Create a new state graph
-// //   const graph = new StateGraph<CampaignState>({
-// //     channels: {
-// //       businessInfo: {},
-// //       campaignInfo: {},
-// //       previousPerformance: {},
-// //       adCopy: {},
-// //       imagePrompt: {},
-// //       imageUrl: {},
-// //       targetingRecommendations: {},
-// //       error: {},
-// //     },
-// //   });
+export function createCampaignGraph() {
+  const graph = new StateGraph<CampaignState>();
 
-//   // Add nodes to the graph
-//   graph.addNode("generateCopy", generateCopyNode);
-//   graph.addNode("generateImage", generateImageNode);
-//   graph.addNode("generateTargeting", generateTargetingNode);
+  graph.addNode("generateCopy", generateCopyNode);
+  graph.addNode("generateImage", generateImageNode);
+  graph.addNode("generateTargeting", generateTargetingNode);
 
-//   // Define the flow of the graph
-//   graph.addEdge(START, "generateCopy");
-//   graph.addEdge("generateCopy", "generateImage");
-//   graph.addEdge("generateImage", "generateTargeting");
-//   graph.addEdge("generateTargeting", END);
+  graph.addEdge(START, "generateCopy");
+  graph.addEdge("generateCopy", "generateImage");
+  graph.addEdge("generateImage", "generateTargeting");
+  graph.addEdge("generateTargeting", END);
 
-//   // Conditional edges - if there's an error, go to END
-//   graph.addConditionalEdges(
-//     "generateCopy",
-//     (state) => (state.error ? "END" : "generateImage")
-//   );
-  
-//   graph.addConditionalEdges(
-//     "generateImage",
-//     (state) => (state.error ? "END" : "generateTargeting")
-//   );
+  graph.addConditionalEdges("generateCopy", (state) =>
+    state.error ? END : "generateImage"
+  );
+  graph.addConditionalEdges("generateImage", (state) =>
+    state.error ? END : "generateTargeting"
+  );
 
-//   // Compile the graph
-//   return graph.compile();
-// }
+  return graph;
+}
 
 // Function to run the campaign generation graph
 export async function generateFullCampaign(input: {
@@ -157,8 +178,7 @@ export async function generateFullCampaign(input: {
   };
   previousPerformance?: string;
 }) {
-//   const campaignGraph = createCampaignGraph();
-  
-//   const result = await campaignGraph.invoke(input);
-//   return result;
+  const campaignGraph = createCampaignGraph();
+  const result = await campaignGraph.invoke(input);
+  return result;
 }

@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-
+import { getAuth, onAuthStateChanged } from "firebase/auth";
 const platformOptions = [
   'Facebook',
   'Instagram',
@@ -49,13 +49,31 @@ export default function CampaignForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
+  
     try {
-      // Generate campaign using AI
-      const generateResponse = await fetch('/api/generate/campaign', {
-        method: 'POST',
+      if (!businessInfo.businessName || !campaignInfo.campaignGoal) {
+        alert("Please fill in all required fields");
+        setLoading(false);
+        return;
+      }  
+  
+      const auth = getAuth();
+      const user = auth.currentUser;
+  
+      if (!user) {
+        alert("You must be logged in to create a campaign.");
+        setLoading(false);
+        return;
+      }
+  
+      // Get Firebase auth token
+      const token = await user.getIdToken();
+  
+      const generateResponse = await fetch("/api/generate/campaign", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`, // Include the token
         },
         body: JSON.stringify({
           businessInfo,
@@ -63,40 +81,40 @@ export default function CampaignForm() {
           previousPerformance,
         }),
       });
-
+  
+      const responseData = await generateResponse.json();
+  
       if (!generateResponse.ok) {
-        throw new Error('Failed to generate campaign');
+        throw new Error(responseData.error || "Failed to generate campaign");
       }
-
-      const generatedCampaign = await generateResponse.json();
-
-      // Save campaign to Firebase
-      const saveResponse = await fetch('/api/campaigns', {
-        method: 'POST',
+  
+      const saveResponse = await fetch("/api/campaigns", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`, // Include the token
         },
         body: JSON.stringify({
           businessInfo,
           campaignInfo,
           previousPerformance,
           generatedContent: {
-            adCopy: generatedCampaign.adCopy,
-            imagePrompt: generatedCampaign.imagePrompt,
-            targetingRecommendations: generatedCampaign.targetingRecommendations,
+            adCopy: responseData.adCopy,
+            imagePrompt: responseData.imagePrompt,
+            targetingRecommendations: responseData.targetingRecommendations,
           },
         }),
       });
-
+  
       if (!saveResponse.ok) {
-        throw new Error('Failed to save campaign');
+        throw new Error("Failed to save campaign");
       }
-
+  
       const savedCampaign = await saveResponse.json();
       router.push(`/campaigns/${savedCampaign.id}`);
     } catch (error) {
-      console.error('Error creating campaign:', error);
-      alert('Failed to create campaign. Please try again.');
+      console.error("Error creating campaign:", error);
+      alert(error instanceof Error ? error.message : "An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
